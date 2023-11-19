@@ -1,0 +1,113 @@
+html {
+    height: 100%;
+    background: rgb(219,84,75);
+    background-image: -webkit-linear-gradient(90deg, midnightblue -15%, rgba(219,84,75,1) 20%, rgba(220,135,74,1) 80%, rgba(255,221,125,1) 100%);
+}
+
+body {
+    font-family: 'Pixelify Sans', sans-serif;
+    text-align: center;
+    color: midnightblue;
+    letter-spacing: 1px;
+}
+
+#main-title {
+    font-size: 5rem;
+    margin-bottom: 0px;
+    text-shadow: 1px 5px 1px rgba(219,84,75,1);
+}
+
+h2 {
+    color: rgba(255,221,125,1);
+    margin: 0;
+}
+
+input[type=number] {
+    width: 3rem;
+    height: 2rem;
+    background-color: rgba(255,221,125,1);
+    color:royalblue;
+    text-align: center;
+    font-family: 'VT323', monospace;
+    font-size: large;
+    border-radius: 15%;
+    border-color: royalblue;
+    border-width: 3px;
+}
+
+input[type=number]:hover {
+    background-color: rgb(255, 243, 175);
+}
+
+button{
+    width: 5rem;
+    height: 2.5rem;
+    margin-left: 10px;
+    background-color:midnightblue;
+    color:rgba(255,221,125,1);
+    font-family: 'VT323', monospace;
+    font-size: large;
+    border-radius: 15%;
+    border-color: darkblue;
+    border-width: 3px;
+}
+
+button:hover {
+    background-color: royalblue;
+}
+
+button:active {
+    background-color: salmon;
+    border-color: rgba(219,84,75,1);
+}
+
+button:disabled {
+    opacity: 50%;
+}
+
+fieldset {
+    border: none;
+    margin: none;
+    margin-top: 10px;
+    padding: none;
+}
+
+label {
+    background-color: royalblue;
+    color:rgba(255,221,125,1);
+    padding: 5px;
+    border-style: solid;
+    border-radius: 10%;
+    border-color: midnightblue;
+    border-width: 3px;
+}
+
+canvas {
+    background: rgb(24, 25, 89);
+	position: relative;
+	top: 30px;
+    border-radius: 10px;
+	font-size: 0;
+	margin:auto;
+    margin-bottom: 50px;
+	height:380px;
+	width:380px;
+	padding: 0;
+	border: solid;
+}
+
+.start {
+    background: lightseagreen;
+}
+
+.end {
+    background: crimson;
+}
+
+
+
+footer {
+    margin-top: 10px;
+    letter-spacing: 3px;
+}
+

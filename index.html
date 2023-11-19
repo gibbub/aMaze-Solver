@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maze Solver</title>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.8.0/lib/p5.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500&family=VT323&display=swap" rel="stylesheet">
+</head>
+<body>
+    
+    <div>
+        <h1 id="main-title">Maze Solver</h1>
+        <h3>Select the dimensions of your maze, then the algorithm to solve it with.</h3>
+    </div>
+
+    <div class="container">
+        
+        <div>
+            <input type="number" id="rows" name="rows" min="5" max="30" value="10"/>
+            x
+            <input type="number" id="cols" name="cols" min="5" max="30" value="10"/>
+
+            <button id="generate">Generate</button>
+        </div>
+
+        <div>
+            <fieldset id="algorithms">
+                <div>
+                    <div>
+                    <input type="radio" id="algoChoice1" name="algorithm" value="DFS" checked="checked"/>
+                    <label for="algoChoice1">DFS</label>
+
+                    <input type="radio" id="algoChoice2" name="algorithm" value="Dijkstra"/>
+                    <label for="algoChoice2">Dijkstra</label>
+
+                    <input type="radio" id="algoChoice3" name="algorithm" value="AStar"/>
+                    <label for="algoChoice3">A-Star</label>
+
+                    <button id="solve">Solve</button>
+                </div>
+            </fieldset>
+
+            
+        </div>
+        
+    </div>
+    
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+    <script src="solver.js"></script>
+</body>
+
+<!--
+    <footer>
+    <h2>2023 Gabby Albrecht</h2>
+</footer>
+-->
+
+
+</html>
