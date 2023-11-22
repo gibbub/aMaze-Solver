@@ -15,7 +15,7 @@ var generating = true;
 var solving_current;
 var solving = false;
 var solve_stack = [];
-var unvisited_set = [];
+var undiscovered_set = [];
 
 var search_method = $('#algorithms input:radio').val();
 
@@ -38,10 +38,24 @@ $('#algorithms input:radio').on('change', function() {
 $("#solve").click(function () { 
     resetGridForSolving();
 
+    /** Dijkstra Initialization **/
     if (search_method == "Dijkstra") {
+
         for (var j = 0; j < rows; j++) {
             for (var i = 0; i < cols; i++) {
-                unvisited_set[i] = grid[i];
+
+                // Set all cells to undiscovered
+                var curr = grid[index(i,j)];
+                curr.discovered = false;
+                undiscovered_set.push(curr);
+
+                // Initialize each cell's distance from start
+                if (i == 0 && j == 0) {
+                    curr.distance = 0;
+                }
+                else {
+                    curr.distance = Infinity;
+                }
             }
         }
     }
@@ -54,7 +68,10 @@ $("#solve").click(function () {
 function resetGridForSolving() {
     for (const cell of grid) {
         cell.discovered = false;
+        cell.onPath = false;
     }
+
+    undiscovered_set = [];
 }
 
 
@@ -103,13 +120,13 @@ function setup() {
 function draw() {
 
     ////****     MAZE GENERATION     ****////
-
     for (var i = 0; i < grid.length; i++) {
         grid[i].show();
     }
 
     current.visited = true;
     current.highlight();
+
     // pick random neighbor
     var next = current.checkNeighbors();
     if (next) {
@@ -136,7 +153,7 @@ function draw() {
 
 
     ////****     MAZE SOLVING     ****////
-    if (generating) {
+    if (generating || solving) {
         document.getElementById("solve").disabled = true;  
     }
     else {
@@ -145,65 +162,18 @@ function draw() {
 
     if (solving) {
         switch (search_method) {
-            
-            ////****     DFS     ****////
-
             case "DFS":   
-
-            solving_current.discovered = true;
-            solving_current.onPath = true;
-            solving_current.highlight();
-
-            if (solving_current == end ) {
-                //console.log("Done solving");
-                solving = false;
-                document.getElementById("solve").disabled = false;
+                dfs();        
                 break;
-            }
-
-            solve_stack.push(solving_current);
-        
-            if (solve_stack.length > 0) {
-
-                solving_current = solve_stack.pop();
-
-                    var adj_cells = solving_current.adjacentCells();
-                    for (const w of adj_cells) {
-                        solve_stack.push(w);
-                    }
-                    // if (adj_cells.length == 0) {
-                    //     solving_current.onPath = false;
-                    // }
-                
-                    
-                    solving_current = solve_stack.pop();
-            }         
-                break;
-
-
-            ////****     DIJKSTRA     ****////
-
             case "Dijkstra":
-
-                // TODO
-                // 1. Mark all cells unvisited. Create a set of unvisted cells
-
-                // 2. Assign every cell a distance value. (This will be distance from start cell)
-                //    Set it to 0 for start node, and infinity for all other nodes.
-                // 3. For current cell, consider all unvisted neighbors and calculate their
-                //    tentative distances through the current node. If the new distance between those
-                //    cells is smaller, choose that distance.
-                // 4. After visiting all unvisited neighbors of the current cell,
-                //    mark the current cell as visited and remove it from the unvisited set.
-                // 5. If the destination cell has been marked visited, the stop.
-                // 6. Else, select the unvisited cell that is marked with the smallest tentative distance,
-                //    set it as the new current cell, and go back to step 3.
+                dijkstra();
                 break;
-
-
-            ////****     A-STAR     ****////
-
             case "AStar":
+                //TODO
+                aStar();
+                break;
+            case "DijkstraDrawPath":
+                drawPath("Dijkstra");
                 break;
             default:
                 console.log("Error: invalid search method");
@@ -211,6 +181,106 @@ function draw() {
     }
 
 
+}
+
+/** Performs DFS search **/
+function dfs() {
+    solving_current.discovered = true;
+    solving_current.onPath = true;
+    solving_current.highlight();
+
+    if (solving_current == end ) {
+        //console.log("Done solving");
+        solving = false;
+        document.getElementById("solve").disabled = false;
+    }
+
+    solve_stack.push(solving_current);
+
+    if (solve_stack.length > 0) {
+
+        solving_current = solve_stack.pop();
+
+            var adj_cells = solving_current.adjacentUndiscoveredCells();
+            for (const n of adj_cells) {
+                solve_stack.push(n);
+            }
+            
+        solving_current = solve_stack.pop();
+    }
+}
+
+
+/** Performs Dijkstra search **/
+function dijkstra() {
+    // TODO
+    // 1. Mark all cells unvisited. Create a set of unvisted cells
+    //      DONE during solve button click
+
+    // 2. Assign every cell a distance value. (This will be distance from start cell)
+    //    Set it to 0 for start node, and infinity for all other nodes.
+    //      DONE during solve button click
+
+    // 3. For current cell, consider all unvisted neighbors and calculate their
+    //    tentative distances through the current node. If the new distance between those
+    //    cells is smaller, choose that distance.
+    var adj_cells = solving_current.adjacentUndiscoveredCells();
+    for (const n of adj_cells) {
+        var new_distance = solving_current.distance + 1;
+
+        if (new_distance < n.distance) {
+            n.distance = new_distance;
+        }
+    }
+
+    // 4. After visiting all unvisited neighbors of the current cell,
+    //    mark the current cell as visited and remove it from the unvisited set.
+    solving_current.discovered = true;
+    solving_current.highlight();
+
+    undiscovered_set.splice(undiscovered_set.indexOf(solving_current), 1);
+
+    // 5. If the destination cell has been marked visited, the stop.
+    if (end.discovered) {
+        search_method = "DijkstraDrawPath";
+        solving_current = end;
+    }
+    else {
+        // 6. Else, select the unvisited cell that is marked with the smallest tentative distance,
+        //    set it as the new current cell, and go back to step 3.
+        var min_distance = Infinity;
+        var min_cell = undefined;
+        for (const c of undiscovered_set) {
+            if (c.distance < min_distance) {
+                min_distance = c.distance;
+                min_cell = c;
+            }
+        }
+
+        min_cell.prev = solving_current;
+        solving_current = min_cell;
+    }
+
+}
+
+
+/** Performs A* search **/
+function aStar() {
+    // TODO
+}
+
+
+function drawPath(method) {
+    if (solving_current == start) {
+        solving = false;
+        document.getElementById("solve").disabled = false;
+        search_method = method;
+    }
+    
+    solving_current.highlight();
+    solving_current.onPath = true;
+    var prev = solving_current.prev;
+    solving_current = prev;
 }
 
 
@@ -229,6 +299,8 @@ function index (i, j) {
 function Cell(i, j) {
     this.i = i;
     this.j = j;
+    this.distance = Infinity;
+    this.prev = undefined;
     this.walls = [true, true, true, true];  // top, right, bottom, left
     this.visited = false;                   // for maze generation
     this.discovered = false;                // for maze solving
@@ -289,7 +361,7 @@ function Cell(i, j) {
     }
 
     /** Returns list of all valid adjacent cells **/
-    this.adjacentCells = function() {
+    this.adjacentUndiscoveredCells = function() {
         var adj_cells = [];
 
         var top = grid[index(i, j-1)];
