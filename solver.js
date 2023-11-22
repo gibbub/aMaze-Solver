@@ -15,7 +15,7 @@ var generating = true;
 var solving_current;
 var solving = false;
 var solve_stack = [];
-var undiscovered_set = [];
+var unvisited_set = [];
 
 var search_method = $('#algorithms input:radio').val();
 
@@ -31,10 +31,13 @@ $("#generate").click(function () {
 });
 
 
+/**  Detects change in algorithm selection **/
 $('#algorithms input:radio').on('change', function() {
     search_method = $(this).val();    
 });
 
+
+/** Prepares grid & initializes appropriate variables for solving **/
 $("#solve").click(function () { 
     resetGridForSolving();
 
@@ -44,10 +47,10 @@ $("#solve").click(function () {
         for (var j = 0; j < rows; j++) {
             for (var i = 0; i < cols; i++) {
 
-                // Set all cells to undiscovered
+                // Set all cells to unvisited
                 var curr = grid[index(i,j)];
-                curr.discovered = false;
-                undiscovered_set.push(curr);
+                curr.visited = false;
+                unvisited_set.push(curr);
 
                 // Initialize each cell's distance from start
                 if (i == 0 && j == 0) {
@@ -65,13 +68,16 @@ $("#solve").click(function () {
     solving_current = start;
 });
 
+
+/** Resets cell values to default **/
 function resetGridForSolving() {
     for (const cell of grid) {
-        cell.discovered = false;
+        cell.visited = false;
+        cell.considered = false;
         cell.onPath = false;
     }
 
-    undiscovered_set = [];
+    unvisited_set = [];
 }
 
 
@@ -100,7 +106,6 @@ function setup() {
     }
     //frameRate(5);
 
-
     // Populate grid with cell objects
     for (var j = 0; j < rows; j++) {
         for (var i = 0; i < cols; i++) {
@@ -124,24 +129,18 @@ function draw() {
         grid[i].show();
     }
 
-    current.visited = true;
+    current.generated = true;
     current.highlight();
 
-    // pick random neighbor
     var next = current.checkNeighbors();
+
     if (next) {
-        next.visited = true;
-
-        // push current cell to stack
+        next.generated = true;
         generate_stack.push(current);
-
-        // remove wall between current and chosen cell
         removeWalls(current, next);
-
-        // set chosen cell as current cell
         current = next;
     }
-    else if (generate_stack.length > 0) {    // if no valid neighbors & generate_stack is not empty
+    else if (generate_stack.length > 0) {
         current = generate_stack.pop();
     }
 
@@ -165,32 +164,34 @@ function draw() {
             case "DFS":   
                 dfs();        
                 break;
+
             case "Dijkstra":
                 dijkstra();
                 break;
+
             case "AStar":
                 //TODO
                 aStar();
                 break;
+
             case "DijkstraDrawPath":
                 drawPath("Dijkstra");
                 break;
+                
             default:
                 console.log("Error: invalid search method");
         }
     }
-
-
 }
+
 
 /** Performs DFS search **/
 function dfs() {
-    solving_current.discovered = true;
+    solving_current.visited = true;
     solving_current.onPath = true;
     solving_current.highlight();
 
     if (solving_current == end ) {
-        //console.log("Done solving");
         solving = false;
         document.getElementById("solve").disabled = false;
     }
@@ -201,7 +202,7 @@ function dfs() {
 
         solving_current = solve_stack.pop();
 
-            var adj_cells = solving_current.adjacentUndiscoveredCells();
+            var adj_cells = solving_current.adjacentUnvisitedCells();
             for (const n of adj_cells) {
                 solve_stack.push(n);
             }
@@ -213,54 +214,36 @@ function dfs() {
 
 /** Performs Dijkstra search **/
 function dijkstra() {
-    // TODO
-    // 1. Mark all cells unvisited. Create a set of unvisted cells
-    //      DONE during solve button click
-
-    // 2. Assign every cell a distance value. (This will be distance from start cell)
-    //    Set it to 0 for start node, and infinity for all other nodes.
-    //      DONE during solve button click
-
-    // 3. For current cell, consider all unvisted neighbors and calculate their
-    //    tentative distances through the current node. If the new distance between those
-    //    cells is smaller, choose that distance.
-    var adj_cells = solving_current.adjacentUndiscoveredCells();
+    var adj_cells = solving_current.adjacentUnvisitedCells();
     for (const n of adj_cells) {
         var new_distance = solving_current.distance + 1;
 
         if (new_distance < n.distance) {
             n.distance = new_distance;
+            n.prev = solving_current;
         }
     }
 
-    // 4. After visiting all unvisited neighbors of the current cell,
-    //    mark the current cell as visited and remove it from the unvisited set.
-    solving_current.discovered = true;
+    solving_current.visited = true;
+    unvisited_set.splice(unvisited_set.indexOf(solving_current), 1);
     solving_current.highlight();
+    solving_current.considered = true;
 
-    undiscovered_set.splice(undiscovered_set.indexOf(solving_current), 1);
-
-    // 5. If the destination cell has been marked visited, the stop.
-    if (end.discovered) {
+    if (end.visited) {
         search_method = "DijkstraDrawPath";
         solving_current = end;
     }
     else {
-        // 6. Else, select the unvisited cell that is marked with the smallest tentative distance,
-        //    set it as the new current cell, and go back to step 3.
         var min_distance = Infinity;
         var min_cell = undefined;
-        for (const c of undiscovered_set) {
+        for (const c of unvisited_set) {
             if (c.distance < min_distance) {
                 min_distance = c.distance;
                 min_cell = c;
             }
         }
-
-        min_cell.prev = solving_current;
         solving_current = min_cell;
     }
-
 }
 
 
@@ -270,6 +253,7 @@ function aStar() {
 }
 
 
+/** Helper function for certain search methods, which backtracks through visited cells to draw the shortest path */
 function drawPath(method) {
     if (solving_current == start) {
         solving = false;
@@ -302,8 +286,9 @@ function Cell(i, j) {
     this.distance = Infinity;
     this.prev = undefined;
     this.walls = [true, true, true, true];  // top, right, bottom, left
-    this.visited = false;                   // for maze generation
-    this.discovered = false;                // for maze solving
+    this.generated = false;                 // for maze generation
+    this.visited = false;                   // for maze solving
+    this.considered = false;                // for visualizing solver before path is generated
     this.onPath = false;
 
     this.setStart = function() {
@@ -337,16 +322,16 @@ function Cell(i, j) {
         var bottom = grid[index(i, j+1)];
         var left = grid[index(i-1, j)];
 
-        if (top && !top.visited) {
+        if (top && !top.generated) {
             neighbors.push(top);
         }
-        if (right && !right.visited) {
+        if (right && !right.generated) {
             neighbors.push(right);
         }
-        if (bottom && !bottom.visited) {
+        if (bottom && !bottom.generated) {
             neighbors.push(bottom);
         }
-        if (left && !left.visited) {
+        if (left && !left.generated) {
             neighbors.push(left);
         }
 
@@ -361,7 +346,7 @@ function Cell(i, j) {
     }
 
     /** Returns list of all valid adjacent cells **/
-    this.adjacentUndiscoveredCells = function() {
+    this.adjacentUnvisitedCells = function() {
         var adj_cells = [];
 
         var top = grid[index(i, j-1)];
@@ -369,16 +354,16 @@ function Cell(i, j) {
         var bottom = grid[index(i, j+1)];
         var left = grid[index(i-1, j)];
 
-        if (top && !top.discovered && !this.walls[0]) {
+        if (top && !top.visited && !this.walls[0]) {
             adj_cells.push(top);
         }
-        if (right && !right.discovered && !this.walls[1]) {
+        if (right && !right.visited && !this.walls[1]) {
             adj_cells.push(right);
         }
-        if (bottom && !bottom.discovered && !this.walls[2]) {
+        if (bottom && !bottom.visited && !this.walls[2]) {
             adj_cells.push(bottom);
         }
-        if (left && !left.discovered && !this.walls[3]) {
+        if (left && !left.visited && !this.walls[3]) {
             adj_cells.push(left);
         }
 
@@ -420,13 +405,18 @@ function Cell(i, j) {
             line(x,      y + ch, x,      y);        // left
         }
 
-        // Colors in cell if it has been visited or discovered
-        if (this.discovered && this.onPath) {
+        // Colors in cell if it has been generated or visited
+        if (this.visited && this.onPath) {
             noStroke();
             fill(32, 178, 170, 5);
             rect(x, y, cw, ch);
         }
-        else if (this.visited) {
+        else if (this.considered) {
+            noStroke();
+            fill(32, 178, 170, 0);
+            rect(x, y, cw, ch);
+        }
+        else if (this.generated) {
             noStroke();
             fill(237, 169, 133, 80);
             rect(x , y, cw, ch);
