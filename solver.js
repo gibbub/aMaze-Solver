@@ -17,7 +17,7 @@ var solving = false;
 var solve_stack = [];
 var unvisited_set = [];
 
-var search_method = $('#algorithms input:radio').val();
+var search_method = $('input[name="algorithm"]:checked').val();
 
 
 /** Generates new maze when generate button is clicked **/
@@ -31,15 +31,10 @@ $("#generate").click(function () {
 });
 
 
-/**  Detects change in algorithm selection **/
-$('#algorithms input:radio').on('change', function() {
-    search_method = $(this).val();    
-});
-
-
 /** Prepares grid & initializes appropriate variables for solving **/
 $("#solve").click(function () { 
     resetGridForSolving();
+    search_method = $('input[name="algorithm"]:checked').val();
 
     /** Dijkstra Initialization **/
     switch (search_method) {
