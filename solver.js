@@ -42,25 +42,39 @@ $("#solve").click(function () {
     resetGridForSolving();
 
     /** Dijkstra Initialization **/
-    if (search_method == "Dijkstra") {
+    switch (search_method) {
+        case ("Dijkstra"):
 
-        for (var j = 0; j < rows; j++) {
-            for (var i = 0; i < cols; i++) {
+            for (var j = 0; j < rows; j++) {
+                for (var i = 0; i < cols; i++) {
 
-                // Set all cells to unvisited
-                var curr = grid[index(i,j)];
-                curr.visited = false;
-                unvisited_set.push(curr);
+                    // Put all cells in unvisited set
+                    var curr = grid[index(i,j)];
+                    unvisited_set.push(curr);
 
-                // Initialize each cell's distance from start
-                if (i == 0 && j == 0) {
-                    curr.distance = 0;
-                }
-                else {
+                    // Initialize each cell's tentative distance from start
                     curr.distance = Infinity;
+
                 }
             }
-        }
+            start.distance = 0;
+            break;
+
+        case ("AStar"):
+            for (var j = 0; j < rows; j++) {
+                for (var i = 0; i < cols; i++) {
+                    var curr = grid[index(i, j)];
+                    curr.distance = Infinity;
+                    curr.fScore = Infinity;
+                }
+            }
+            start.distance = 0;
+            start.fScore = heuristic(start);
+            unvisited_set.push(start);
+            break;
+
+        default:
+            // Do nothing
     }
 
     this.disabled = true;
@@ -177,6 +191,10 @@ function draw() {
             case "DijkstraDrawPath":
                 drawPath("Dijkstra");
                 break;
+            
+            case "AStarDrawPath":
+                drawPath("AStar");
+                break;
                 
             default:
                 console.log("Error: invalid search method");
@@ -249,7 +267,72 @@ function dijkstra() {
 
 /** Performs A* search **/
 function aStar() {
-    // TODO
+    /** TODO
+     *** 1. Start with only start cell in unvisited_set
+     *** 2. Default all cell distances to Infinity, except for start (0)
+     *** 3. Default all cell fScores to Infinity, except start (heuristic(start))
+     ***4. While the unvisited_set is not empty:
+     ***5. current = cell in unvisited_set with lowest fScore
+     *  6. if current == end, draw the solve path
+     ***7. remove current from unvisited_set
+     ***8. for each valid neighbor of current cell:
+     *   ***9. set tentative_distance = current.distance + 1 <-(dist between curr and neighbor)
+     *   ***10. if tentative_distance < neighbor.distance, then this is best path to neighbor so far
+     *       ***11: set neighbor.prev = current
+     *       ***12. set neighbor.distance = tentative_distance
+     *       ***13. set neighbor.fScore = tentative_distance + heuristic(neighbor)
+     *       ***14. if neighbor not in unvisited_set, push it
+     * 
+     */
+    if (unvisited_set.length == 0) {
+        console.log("Something went wrong. Goal could not be reached.");
+    }
+
+    var min_fScore = Infinity;
+    var min_cell = undefined;
+    for (const c of unvisited_set) {
+        if (c.fScore < min_fScore) {
+            min_fScore = c.fScore;
+            min_cell = c;
+        }
+    }
+
+    solving_current = min_cell;
+
+    solving_current.visited = true;
+    solving_current.highlight();
+    solving_current.considered = true;
+    if (end.visited) {
+        search_method = "AStarDrawPath";
+        solving_current = end;
+    }
+    unvisited_set.splice(unvisited_set.indexOf(solving_current), 1);
+
+
+    var adj_cells = solving_current.adjacentUnvisitedCells();
+    for (const n of adj_cells) {
+        var temp_distance = solving_current.distance + 1;
+        if (temp_distance < n.distance) {
+            n.prev = solving_current;
+            n.distance = temp_distance;
+            n.fScore = temp_distance + heuristic(n);
+
+            if (unvisited_set.indexOf(n) == -1) {
+                unvisited_set.push(n);
+            }
+        }
+    }
+
+}
+
+/** Computes heuristic (distance between curr cell and end cell) */
+function heuristic(cell) {
+    var x1 = cell.i;
+    var y1 = cell.j;
+    var x2 = end.i;
+    var y2 = end.j;
+
+    return Math.sqrt(((x2-x1)*(x2-x1)) + ((y2-y1)*(y2-y1)));
 }
 
 
@@ -284,8 +367,10 @@ function Cell(i, j) {
     this.i = i;
     this.j = j;
     this.distance = Infinity;
+    this.fScore = Infinity;
     this.prev = undefined;
     this.walls = [true, true, true, true];  // top, right, bottom, left
+    
     this.generated = false;                 // for maze generation
     this.visited = false;                   // for maze solving
     this.considered = false;                // for visualizing solver before path is generated
